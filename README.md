@@ -36,6 +36,7 @@
 - Java Socket (TCP), 멀티스레드
 - Swing
 - Eclipse, Git/GitHub
+- Socket + BufferedReader/PrintWriter(제어 채널), 파일 전송은 별도 소켓과 DataStream
 
 ## 실행 방법
 
@@ -56,7 +57,7 @@
 ## 폴더 구조
 
 ```
-sock-talk/
+socktalk-messenger/
 ├─ README.md
 ├─ .gitignore
 ├─ .gitattributes
@@ -96,7 +97,9 @@ sock-talk/
       ├─ ClientMain.java
       ├─ Theme.java
       ├─ net/
-      │  └─ ConnectionManager.java
+      │  ├─ ConnectionManager.java
+      │  ├─ MessageListener.java
+      │  └─ FileTransferClient.java
       └─ ui/
          ├─ LoginFrame.java
          ├─ MainFrame.java            # 내 프로필, 접속자·부서 구성원, 활동상태
@@ -152,6 +155,6 @@ sock-talk/
 | 마일스톤 | 마감 | 내용 |
 |---|---|---|
 | M1 기반 | 11/15 | 다중 접속, 로그인, 화면 틀 |
-| M2 핵심 | 11/22 | 로비 채팅, 접속자 목록, 활동상태, 부서 단체방 연결, 활동상태 |
+| M2 핵심 | 11/22 | 로비 채팅, 접속자 목록, 활동상태, 부서 단체방 연결 |
 | M3 기능 | 11/29 | 1:1·멀티 채팅, 권한 제어, 이모티콘·파일 전송, 공지, 방만들기, 관리자 화면 |
 | M4 마무리 | 12/08 | 예외 처리, 통합 테스트, 보고서·발표 |
