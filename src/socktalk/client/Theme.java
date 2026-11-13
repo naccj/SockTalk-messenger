@@ -9,4 +9,6 @@ public class Theme {
 	public final static Color PRIMARY = Color.decode("#668CAF");
 	public final static Color TEXT = Color.decode("#1F2A36");
 	public final static Color TEXT_ON_COLOR = Color.decode("#101820");
+	
+	public final static String FONT = "맑은 고딕";
 }
