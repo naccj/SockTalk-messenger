@@ -124,14 +124,4 @@ public class LoginFrame extends JFrame {
 			updateInputState();
 		}
 	};
-	
-	public static void main(String[] args) {
-		LoginFrame frame = new LoginFrame(null);
-		frame.setVisible(true);
-	}
-
-	
-
-	
-
 }
