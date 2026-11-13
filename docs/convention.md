@@ -25,9 +25,9 @@
 |---|---|
 | `main` | 제출용. 실행 가능한 상태만 유지. **박지수만 병합** |
 | `dev` | main의 서브브랜치(이름은 팀 합의로 변경 가능). 작업 브랜치의 병합 대상 |
-| `feature/<파트>-<기능>` | 새 기능 (예: `feature/server-login`, `feature/client-chat-ui`) |
-| `fix/<파트>-<내용>` | 버그 수정 |
-| `docs/<내용>` | 문서 수정 |
+| `feature/<이슈번호>-<파트>-<기능>` | 새 기능 (예: `feature/1-server-login`, `feature/client-chat-ui`) |
+| `fix/<이슈번호>-<파트>-<내용>` | 버그 수정 |
+| `docs/<이슈번호>-<내용>` | 문서 수정 |
 
 - 브랜치 이름은 영문 소문자와 하이픈만 씁니다.
 - `main`과 `dev`에는 직접 push하지 않고 반드시 PR을 거칩니다.
