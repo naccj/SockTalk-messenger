@@ -5,10 +5,9 @@ reviews:
   poem: false
   collapse_walkthrough: false
   auto_review:
-    enabled: true
-    drafts: false
-    base_branches:
-      - main
-      - dev
+     enabled: true
+     drafts: false
+     base_branches:
+       - ".*"
 
 language: ko
