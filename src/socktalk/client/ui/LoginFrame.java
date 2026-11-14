@@ -14,7 +14,7 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 
-import socktalk.client.Theme;
+//import socktalk.client.Theme;
 import socktalk.client.net.ConnectionManager;
 
 public class LoginFrame extends JFrame {
@@ -34,21 +34,21 @@ public class LoginFrame extends JFrame {
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		
 		panel = new JPanel();
-		panel.setBackground(Theme.BG);
+		//panel.setBackground(Theme.BG);
 		panel.setBorder(new EmptyBorder(5, 5, 5, 5));
 		panel.setLayout(null);
 		setContentPane(panel);
 		
 		// 제목
 		JLabel titleLabel = new JLabel("Sock-Talk", SwingConstants.CENTER);
-		titleLabel.setFont(new Font(Theme.FONT, Font.BOLD, 26));
-		titleLabel.setForeground(Theme.PRIMARY);
+		//titleLabel.setFont(new Font(Theme.FONT, Font.BOLD, 26));
+		//titleLabel.setForeground(Theme.PRIMARY);
 		titleLabel.setBounds(0, 120, 380, 35);
 		
 		// 부제
 		JLabel subTitleLabel = new JLabel("xx회사 메신저", SwingConstants.CENTER);
-		subTitleLabel.setFont(new Font(Theme.FONT, Font.PLAIN, 12));
-		subTitleLabel.setForeground(Theme.TEXT);
+		//subTitleLabel.setFont(new Font(Theme.FONT, Font.PLAIN, 12));
+		//subTitleLabel.setForeground(Theme.TEXT);
 		subTitleLabel.setBounds(0, 160, 380, 20);
 		
 		// 아이디 입력		
@@ -63,9 +63,9 @@ public class LoginFrame extends JFrame {
 		
 		// 로그인 버튼
 		loginButton = new JButton("로그인");
-		loginButton.setFont(new Font(Theme.FONT, Font.BOLD, 14));
-		loginButton.setBackground(Theme.PRIMARY);
-		loginButton.setForeground(Theme.TEXT_ON_COLOR);
+		//loginButton.setFont(new Font(Theme.FONT, Font.BOLD, 14));
+		//loginButton.setBackground(Theme.PRIMARY);
+		//loginButton.setForeground(Theme.TEXT_ON_COLOR);
 		loginButton.setFocusPainted(false);
 		loginButton.setBounds(57, 335, 265, 42);
 		
