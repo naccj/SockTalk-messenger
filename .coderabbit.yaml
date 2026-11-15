@@ -4,10 +4,13 @@ reviews:
   high_level_summary: true
   poem: false
   collapse_walkthrough: false
+  pre_merge_checks:
+    description:
+      mode: "off"
   auto_review:
-     enabled: true
-     drafts: false
-     base_branches:
-       - ".*"
+    enabled: true
+    drafts: false
+    base_branches:
+      - ".*"
 
-language: ko
+language: ko-KR

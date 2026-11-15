@@ -1,25 +1,25 @@
 package socktalk.client.net;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
+import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.UnknownHostException;
-
-import socktalk.client.Message;
+import java.util.logging.Logger;
 
 public class ConnectionManager {
+	private static final Logger logger = Logger.getLogger(ConnectionManager.class.getName());
 	private Socket socket;
 	
 	private String serverAddress;
 	private int serverPort;
 	
-	private ObjectInputStream in;
-	private ObjectOutputStream out;
+	private BufferedReader in;
+	private PrintWriter out;
 	
 	public ConnectionManager(String serverAddress, int serverPort) {
 		this.serverAddress = serverAddress;
@@ -31,19 +31,23 @@ public class ConnectionManager {
 		SocketAddress sa = new InetSocketAddress(serverAddress, serverPort);
 		socket.connect(sa, 3000);
 		
-		out = new ObjectOutputStream(new BufferedOutputStream(socket.getOutputStream()));
-		out.flush();
-		in = new ObjectInputStream(new BufferedInputStream(socket.getInputStream()));
+		in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+		out = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()));
 	}
 	
-	public void send(Message msg) {
-		try {
-			out.writeObject(msg);
-			out.flush();
-		} catch (IOException e) {
-			System.err.println("클라이언트 일반 전송 오류> " + e.getMessage());
-		}
+	private void startReceiveThread() {
+		
 	}
+	
+	public synchronized void send(String message) {
+		
+	}
+	
+	public void disconnect() {
+		
+	}
+	
+	
 	
 	
 }
