@@ -40,38 +40,40 @@ public class LoginFrame extends JFrame {
 		setContentPane(panel);
 		
 		// 제목
-		JLabel titleLabel = new JLabel("Sock-Talk", SwingConstants.CENTER);
+		JLabel titleLabel = new JLabel("Sock-Talk");
 		titleLabel.setFont(new Font(Theme.FONT, Font.BOLD, 26));
 		titleLabel.setForeground(Theme.PRIMARY);
-		titleLabel.setBounds(0, 120, 380, 35);
+		titleLabel.setBounds(122, 120, 300, 35);
 		
-		// 부제
-		JLabel subTitleLabel = new JLabel("xx회사 메신저", SwingConstants.CENTER);
-		subTitleLabel.setFont(new Font(Theme.FONT, Font.PLAIN, 12));
-		subTitleLabel.setForeground(Theme.TEXT);
-		subTitleLabel.setBounds(0, 160, 380, 20);
-		
-		// 아이디 입력		
+		// 아이디 입력
+		JLabel idLabel = new JLabel("아이디");
+		idLabel.setFont(new Font(Theme.FONT, Font.PLAIN, 10));
+		idLabel.setForeground(Theme.TEXT);
+		idLabel.setBounds(57, 205, 50, 30);
 		idField = new JTextField();
-		idField.setBounds(57, 240, 265, 35);
-		Placeholder.setPlaceholder(idField, "아이디를 입력하세요");
+		idField.setBounds(57, 230, 265, 35);
+		
 		
 		// 비밀번호 입력
+		JLabel pwLabel = new JLabel("비밀번호");
+		pwLabel.setFont(new Font(Theme.FONT, Font.PLAIN, 10));
+		pwLabel.setForeground(Theme.TEXT);
+		pwLabel.setBounds(57, 260, 50, 30);
 		pwField = new JPasswordField();
 		pwField.setBounds(57, 285, 265, 35);
-		Placeholder.setPlaceholder(pwField, "비밀번호를 입력하세요");
 		
 		// 로그인 버튼
 		loginButton = new JButton("로그인");
 		loginButton.setFont(new Font(Theme.FONT, Font.BOLD, 14));
 		loginButton.setBackground(Theme.PRIMARY);
-		loginButton.setForeground(Theme.TEXT_ON_COLOR);
+		loginButton.setForeground(Theme.TEXT);
 		loginButton.setFocusPainted(false);
-		loginButton.setBounds(57, 335, 265, 42);
+		loginButton.setBounds(57, 355, 265, 42);
 		
 		panel.add(titleLabel);
-		panel.add(subTitleLabel);
+		panel.add(idLabel);
 		panel.add(idField);
+		panel.add(pwLabel);
 		panel.add(pwField);
 		panel.add(loginButton);
 		
