@@ -41,13 +41,13 @@ public class LoginFrame extends JFrame {
 		
 		// 제목
 		JLabel titleLabel = new JLabel("Sock-Talk", SwingConstants.CENTER);
-		titleLabel.setFont(new Font("Malgun Gothic", Font.BOLD, 26));
+		titleLabel.setFont(new Font(Theme.FONT, Font.BOLD, 26));
 		titleLabel.setForeground(Theme.PRIMARY);
 		titleLabel.setBounds(0, 120, 380, 35);
 		
 		// 부제
 		JLabel subTitleLabel = new JLabel("xx회사 메신저", SwingConstants.CENTER);
-		subTitleLabel.setFont(new Font("Malgun Gothic", Font.PLAIN, 12));
+		subTitleLabel.setFont(new Font(Theme.FONT, Font.PLAIN, 12));
 		subTitleLabel.setForeground(Theme.TEXT);
 		subTitleLabel.setBounds(0, 160, 380, 20);
 		
@@ -63,7 +63,7 @@ public class LoginFrame extends JFrame {
 		
 		// 로그인 버튼
 		loginButton = new JButton("로그인");
-		loginButton.setFont(new Font("Malgun Gothic", Font.BOLD, 14));
+		loginButton.setFont(new Font(Theme.FONT, Font.BOLD, 14));
 		loginButton.setBackground(Theme.PRIMARY);
 		loginButton.setForeground(Theme.TEXT_ON_COLOR);
 		loginButton.setFocusPainted(false);
@@ -124,14 +124,4 @@ public class LoginFrame extends JFrame {
 			updateInputState();
 		}
 	};
-	
-	public static void main(String[] args) {
-		LoginFrame frame = new LoginFrame(null);
-		frame.setVisible(true);
-	}
-
-	
-
-	
-
 }
