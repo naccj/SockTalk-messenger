@@ -7,6 +7,7 @@ public class Protocol {
     // ===== 필수구현 =====
     // 클라이언트 -> 서버
     public static final String LOGIN = "LOGIN";          // LOGIN|아이디|비밀번호
+    public static final String LOGOUT = "LOGOUT";
 
     // 서버 -> 클라이언트
     public static final String LOGIN_OK = "LOGIN_OK";    // LOGIN_OK|이름|부서
