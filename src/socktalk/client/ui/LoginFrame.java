@@ -66,7 +66,7 @@ public class LoginFrame extends JFrame {
 		loginButton = new JButton("로그인");
 		loginButton.setFont(new Font(Theme.FONT, Font.BOLD, 14));
 		loginButton.setBackground(Theme.PRIMARY);
-		loginButton.setForeground(Theme.TEXT);
+		loginButton.setForeground(Theme.TEXT_ON_COLOR);
 		loginButton.setFocusPainted(false);
 		loginButton.setBounds(57, 355, 265, 42);
 		
