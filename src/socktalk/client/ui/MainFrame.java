@@ -247,7 +247,7 @@ public class MainFrame extends JFrame{
 	}
 	
 	private void loadDummyData() {
-		loadUsersFromAccountFile("account.txt");
+		loadUsersFromAccountFile("data/account.txt");
 		
 		chatRoomListModel.addElement(new RoomItem("DEPT", "개발팀 단체방", "공지", "오후 1:42"));
 		chatRoomListModel.addElement(new RoomItem("GROUP", "SockTalk 프로젝트 TF", "메인 UI 브랜치 작업 중입니다!", "오후 1:15"));
