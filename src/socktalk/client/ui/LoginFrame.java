@@ -94,9 +94,8 @@ public class LoginFrame extends JFrame {
 					String name = msg.get(1);
 					String dept = msg.get(2);
 					SwingUtilities.invokeLater(() -> {
-						JOptionPane.showMessageDialog(LoginFrame.this, name + "(" + dept + ") 님 환영합니다!");
-						//new MainFrame(name, dept).setVisible(true);
-						//dispose();
+						new MainFrame(cm, name, dept).setVisible(true);
+						dispose();
 					});
 				}else if(msg.getType().equals(Protocol.LOGIN_FAIL)) {
 					String reason = msg.size() > 0 ? msg.get(0) : "로그인에 실패했습니다.";
