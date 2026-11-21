@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [dev, main]
+
+jobs:
+  validate:
+    name: Validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 충돌 표시가 남아 있는지 검사
+        run: |
+          if grep -rnE '^(<<<<<<<|>>>>>>>) ' --include='*.java' --include='*.md' --include='*.txt' .; then
+            echo "병합 충돌 표시가 남아 있습니다."
+            exit 1
+          fi
+
+      - name: 올리면 안 되는 파일 검사
+        run: |
+          if git ls-files | grep -E '(^bin/|\.class$)'; then
+            echo "빌드 산출물(bin/, .class)이 커밋되어 있습니다."
+            exit 1
+          fi
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: 컴파일
+        run: |
+          find src -name '*.java' > sources.txt
+          mkdir -p out
+          javac -encoding UTF-8 -d out @sources.txt
