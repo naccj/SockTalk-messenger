@@ -15,10 +15,8 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.BufferedReader;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.UnsupportedEncodingException;
 
 import javax.swing.BorderFactory;
 import javax.swing.DefaultListCellRenderer;
@@ -28,7 +26,6 @@ import javax.swing.JComboBox;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JList;
-import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.ListSelectionModel;
@@ -36,8 +33,10 @@ import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 
 import socktalk.client.Theme;
+import socktalk.client.net.ConnectionManager;
 
 public class MainFrame extends JFrame{
+	private ConnectionManager cm;
 	private String myName;
 	private String myDepartment;
 	
@@ -53,11 +52,8 @@ public class MainFrame extends JFrame{
 	private DefaultListModel<UserItem> userListModel;
 	private DefaultListModel<RoomItem> chatRoomListModel;
 	
-	public MainFrame() {
-		this("테스트1", "개발");
-	}
-	
-	public MainFrame(String userName, String department) {
+	public MainFrame(ConnectionManager cm, String userName, String department) {
+		this.cm = cm;
 		this.myName = userName;
 		this.myDepartment = department;
 		
@@ -247,7 +243,7 @@ public class MainFrame extends JFrame{
 	}
 	
 	private void loadDummyData() {
-		loadUsersFromAccountFile("data/account.txt");
+		loadUsersFromAccountFile("data/accounts.txt");
 		
 		chatRoomListModel.addElement(new RoomItem("DEPT", "개발팀 단체방", "공지", "오후 1:42"));
 		chatRoomListModel.addElement(new RoomItem("GROUP", "SockTalk 프로젝트 TF", "메인 UI 브랜치 작업 중입니다!", "오후 1:15"));
@@ -417,9 +413,5 @@ public class MainFrame extends JFrame{
 			row.add(timeLbl, BorderLayout.EAST);
 			return row;
 		}
-	}
-	
-	public static void main(String[] args) {
-		SwingUtilities.invokeLater(() -> new MainFrame().setVisible(true));
 	}
 }

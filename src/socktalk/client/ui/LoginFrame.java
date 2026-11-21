@@ -1,21 +1,25 @@
 package socktalk.client.ui;
 
-import java.awt.Color;
 import java.awt.Font;
+import java.io.IOException;
 
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPasswordField;
 import javax.swing.JTextField;
-import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 
 import socktalk.client.Theme;
 import socktalk.client.net.ConnectionManager;
+import socktalk.client.net.MessageListener;
+import socktalk.common.Message;
+import socktalk.common.Protocol;
 
 public class LoginFrame extends JFrame {
 	private ConnectionManager cm;
@@ -82,6 +86,36 @@ public class LoginFrame extends JFrame {
 		
 		loginButton.setEnabled(false);
 		loginListener();
+		
+		cm.setMessageListener(new MessageListener() {
+			@Override
+			public void onMessage(Message msg) {
+				if(msg.getType().equals(Protocol.LOGIN_OK)) {
+					String name = msg.get(1);
+					String dept = msg.get(2);
+					SwingUtilities.invokeLater(() -> {
+						new MainFrame(cm, name, dept).setVisible(true);
+						dispose();
+					});
+				}else if(msg.getType().equals(Protocol.LOGIN_FAIL)) {
+					String reason = msg.size() > 0 ? msg.get(0) : "로그인에 실패했습니다.";
+					SwingUtilities.invokeLater(() -> {
+						JOptionPane.showMessageDialog(LoginFrame.this, reason, "로그인 실패", JOptionPane.ERROR_MESSAGE);
+						pwField.setText("");
+						pwField.requestFocusInWindow();
+						updateInputState();
+					});
+				}
+			}
+
+			@Override
+			public void onDisconnected() {
+				SwingUtilities.invokeLater(() -> {
+					JOptionPane.showMessageDialog(LoginFrame.this, "서버와의 연결이 끊어졌습니다.", "연결 끊김", JOptionPane.WARNING_MESSAGE);
+					updateInputState();
+				});
+			}
+		});
 	}
 	
 	private void loginListener() {
@@ -98,6 +132,17 @@ public class LoginFrame extends JFrame {
 		}
 		String id = idField.getText().trim();
 		String pw = new String(pwField.getPassword()).trim();		
+		
+		if(!cm.isConnected()) {
+			try {
+				cm.connectToServer();
+			}catch (IOException e) {
+				JOptionPane.showMessageDialog(this, "서버에 연결할 수 없습니다.", "접속 실패", JOptionPane.ERROR_MESSAGE);
+				return;
+			}
+		}
+		
+		cm.send(new Message(Protocol.LOGIN, id, pw));
 	}
 	
 	private void updateInputState() {

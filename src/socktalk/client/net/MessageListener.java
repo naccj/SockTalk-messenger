@@ -1,5 +1,8 @@
 package socktalk.client.net;
 
-public class MessageListener {
+import socktalk.common.Message;
 
+public interface MessageListener {
+	void onMessage(Message message);
+	void onDisconnected();
 }
