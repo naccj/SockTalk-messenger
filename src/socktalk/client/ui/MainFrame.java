@@ -13,10 +13,11 @@ import java.awt.GridLayout;
 import java.awt.RenderingHints;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.io.BufferedReader;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 import javax.swing.BorderFactory;
 import javax.swing.DefaultListCellRenderer;
@@ -26,6 +27,7 @@ import javax.swing.JComboBox;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JList;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.ListSelectionModel;
@@ -34,11 +36,17 @@ import javax.swing.SwingUtilities;
 
 import socktalk.client.Theme;
 import socktalk.client.net.ConnectionManager;
+import socktalk.client.net.MessageListener;
+import socktalk.common.Message;
+import socktalk.common.Protocol;
 
 public class MainFrame extends JFrame{
 	private ConnectionManager cm;
+	private String myId;
 	private String myName;
 	private String myDepartment;
+	
+	private Map<String, UserItem> userMap = new LinkedHashMap<>();
 	
 	private JComboBox<String> statusComboBox;
 	private CardLayout cardLayout;
@@ -59,7 +67,7 @@ public class MainFrame extends JFrame{
 		
 		initFrame();
 		initComponents();
-		loadDummyData();
+		setupMessageListener();
 	}
 	
 	private void initFrame() {
@@ -133,6 +141,20 @@ public class MainFrame extends JFrame{
 		statusComboBox.setBackground(Theme.BG);
 		statusComboBox.setForeground(Theme.TEXT);
 		statusComboBox.setPreferredSize(new Dimension(105, 28));
+		
+		statusComboBox.addActionListener(e ->{
+			if (cm == null) {
+				return;
+			}
+			String selected = (String) statusComboBox.getSelectedItem();
+			String code = switch(selected) {
+				case "자리비움" -> "AWAY";
+				case "다른용무중" -> "BUSY";
+				case "방해금지" -> "DND";
+				default -> "AVAILABLE";
+			};
+			cm.send(new Message(Protocol.STATUS, code));
+		});
 		
 		myProfilePanel.add(myAvatar, BorderLayout.WEST);
 		myProfilePanel.add(myInfoBox, BorderLayout.CENTER);
@@ -242,51 +264,143 @@ public class MainFrame extends JFrame{
 		styleTabButton(tabChatBtn, "CHAT".equals(cardName));
 	}
 	
-	private void loadDummyData() {
-		loadUsersFromAccountFile("data/accounts.txt");
-		
-		chatRoomListModel.addElement(new RoomItem("DEPT", "개발팀 단체방", "공지", "오후 1:42"));
-		chatRoomListModel.addElement(new RoomItem("GROUP", "SockTalk 프로젝트 TF", "메인 UI 브랜치 작업 중입니다!", "오후 1:15"));
-        chatRoomListModel.addElement(new RoomItem("DM", "박지수", "파일 소켓 토큰 처리 테스트 완료했어", "오전 11:30"));
-        chatRoomListModel.addElement(new RoomItem("DM", "이서연", "컬러 팔레트 시안 공유드립니다.", "어제"));
+	private void loadDommyRooms() {
+		chatRoomListModel.addElement(new RoomItem("DEPT", myDepartment + "단체방", "공지", "13:42"));
 	}
 	
-	private void loadUsersFromAccountFile(String filePath) {
-		try {
-			BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(filePath),"UTF-8"));
-			
-			String line;
-			while((line = br.readLine()) != null) {
-				line = line.trim();
-				if(line.isEmpty()) {
-					continue;
-				}
-				
-				String[] parts = line.split("\\|");
-				if(parts.length >= 4) {
-					String name = parts[2].trim();
-					String dept = parts[3].trim();
-					
-					if(!name.equals(myName)) {
-						userListModel.addElement(new UserItem(name, dept));
+	private void setupMessageListener() {
+		if (cm == null) {
+			return;
+		}
+		
+		cm.setMessageListener(new MessageListener() {
+
+			@Override
+			public void onMessage(Message msg) {
+				String type = msg.getType();
+				SwingUtilities.invokeLater(() -> {
+					switch(type) {
+						case Protocol.USER_LIST -> handleUserList(msg);
+						case Protocol.USER_JOIN -> handleUserJoin(msg);
+						case Protocol.USER_LEAVE -> handleUserLeave(msg);
+						case Protocol.PRESENCE -> handlePresence(msg);
+						default -> System.out.println("[MainFrame] 미처리 메시지: " + type);
 					}
+				});
+			}
+
+			@Override
+			public void onDisconnected() {
+				SwingUtilities.invokeLater(() -> {
+					JOptionPane.showMessageDialog(MainFrame.this, "서버와의 연결이 끊어졌습니다.", "연결 끊김", JOptionPane.WARNING_MESSAGE);
+					
+				});
+			}
+			
+		});
+	}
+	
+	// USER_LIST|n|(아이디|이름|부서|상태)xn
+	private void handleUserList(Message msg) {
+		if (msg.size() < 1) {
+			return;
+		}
+		try {
+			int n = Integer.parseInt(msg.get(0));
+			userMap.clear();
+			for (int i = 0; i < n; i++) {
+				int base = 1 + i * 4;
+				if (base + 3 >= msg.size()) {
+					break;
+				}
+				String id = msg.get(base + 1);
+				String name = msg.get(base + 1);
+				String dept = msg.get(base + 2);
+				String status = msg.get(base + 3);
+				if(!id.equals(myId)) {
+					userMap.put(id, new UserItem(id, name, dept, status));
 				}
 			}
-		} catch (IOException e) {
-			System.err.println("account.txt 읽기 실패: " + e.getMessage());
+			refreshUserList();
+		}catch (NumberFormatException e) {
+			System.err.println("USER_LIST 파싱 오류: " + e.getMessage());
+		}
+	}
+	
+	// USER_JOIN|아이디|이름|부서|상태
+	private void handleUserJoin(Message msg) {
+		if (msg.size() < 4) {
+			return;
+		}
+		String id = msg.get(0);
+		if(id.equals(myId)) {
+			return;
+		}
+		userMap.put(id, new UserItem(id, msg.get(1), msg.get(2), msg.get(3)));
+		refreshUserList();
+	}
+	
+	private void handleUserLeave(Message msg) {
+		if (msg.size() < 1) {
+			System.err.println("[MainFrame] USER_LEAVE 필드 부족: " + msg.size());
+			return;
+		}
+		
+		String id = msg.get(0);
+		UserItem user = userMap.get(id);
+		if(user != null) {
+			user.status = "OFFLINE";
+			refreshUserList();
+		}
+	}
+	
+	// PRESENCE|아이디|상태
+	private void handlePresence(Message msg) {
+		if(msg.size() < 2) {
+			return;
+		}
+		String id = msg.get(0);
+		String status = msg.get(1);
+		UserItem user = userMap.get(id);
+		if(user != null) {
+			user.status = status;
+			refreshUserList();
+		}
+	}
+	
+	private void refreshUserList() {
+		userListModel.clear();
+		List<UserItem> sorted = new ArrayList<>(userMap.values());
+		sorted.sort(Comparator
+				.comparing((UserItem u) -> !u.dept.equals(myDepartment))
+				.thenComparing(u -> u.dept)
+				.thenComparing(u -> u.name));
+		
+		String currentDept = null;
+		for(UserItem u : sorted) {
+			if(!u.dept.equals(currentDept)) {
+				currentDept = u.dept;
+				userListModel.addElement(UserItem.header(currentDept));
+			}
+			userListModel.addElement(u);
 		}
 	}
 	
 	private static class UserItem{
 		String name, dept, status;
-		UserItem(String name, String dept, String status){
+		boolean isHeader;
+		
+		UserItem(String id, String name, String dept, String status){
 			this.name = name;
 			this.dept = dept;
 			this.status = status;
+			this.isHeader = false;
 		}
 		
-		UserItem(String name, String dept){
-			this(name, dept, "OFFLINE");
+		static UserItem header(String dept) {
+			UserItem item = new UserItem("", "", dept, "");
+			item.isHeader = true;
+			return item;
 		}
 	}
 
@@ -330,6 +444,18 @@ public class MainFrame extends JFrame{
 		@Override
 		public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
 			UserItem item = (UserItem) value;
+			
+			if(item.isHeader) {
+				JPanel header = new JPanel(new BorderLayout());
+				header.setBackground(Theme.BG);
+				header.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, Theme.SUB));
+				JLabel lbl = new JLabel(item.dept);
+				lbl.setFont(new Font(Theme.FONT, Font.BOLD, 11));
+				lbl.setForeground(Theme.TEXT);
+				lbl.setBorder(BorderFactory.createEmptyBorder(6, 18, 6, 18));
+				header.add(lbl, BorderLayout.WEST);
+				return header;
+			}
 			JPanel row = new JPanel(new BorderLayout(12, 0));
 			row.setBorder(BorderFactory.createEmptyBorder(8, 18, 8, 18));
 			row.setBackground(isSelected ? Theme.SUB : Color.WHITE);
@@ -349,26 +475,19 @@ public class MainFrame extends JFrame{
 			textBox.add(nameLbl);
 			textBox.add(deptLbl);
 			
+			String statusText;
+			Color statusColor;
+			switch (item.status) {
+			case "AVAILABLE" -> { statusText = "대화가능"; statusColor = Theme.PRIMARY; }
+			case "AWAY" -> { statusText = "자리비움"; statusColor = Theme.ACCENT; }
+			case "BUSY" -> { statusText = "다른용무중"; statusColor = Theme.ACCENT; }
+			case "DND" -> { statusText = "방해금지"; statusColor = Theme.TEXT; }
+			default -> {statusText = "오프라인"; statusColor = Theme.TEXT; }
+			}
+			
 			JLabel statusLbl = new JLabel(item.status);
 			statusLbl.setFont(new Font(Theme.FONT, Font.PLAIN, 11));
-
-			switch (item.status) {
-			case "AVAILABLE":
-				statusLbl.setText("대화가능");
-				break;
-			case "AWAY":
-				statusLbl.setText("자리비움");
-				break;
-			case "BUSY":
-				statusLbl.setText("다른용무중");
-				break;
-			case "DND":
-				statusLbl.setText("방해금지");
-				break;
-			default:
-				statusLbl.setText("오프라인");
-				break;
-		}
+			statusLbl.setForeground(statusColor);
 			
 			row.add(avatar, BorderLayout.WEST);
 			row.add(textBox, BorderLayout.CENTER);

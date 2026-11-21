@@ -91,6 +91,7 @@ public class LoginFrame extends JFrame {
 			@Override
 			public void onMessage(Message msg) {
 				if(msg.getType().equals(Protocol.LOGIN_OK)) {
+					String id = msg.get(0);
 					String name = msg.get(1);
 					String dept = msg.get(2);
 					SwingUtilities.invokeLater(() -> {
