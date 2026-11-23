@@ -95,7 +95,7 @@ public class LoginFrame extends JFrame {
 					String name = msg.get(1);
 					String dept = msg.get(2);
 					SwingUtilities.invokeLater(() -> {
-						new MainFrame(cm, name, dept).setVisible(true);
+						new MainFrame(cm, id, name, dept).setVisible(true);
 						dispose();
 					});
 				}else if(msg.getType().equals(Protocol.LOGIN_FAIL)) {
