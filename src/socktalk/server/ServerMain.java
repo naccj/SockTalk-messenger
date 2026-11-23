@@ -25,6 +25,7 @@ public class ServerMain {
 	private Vector<ClientHandler> users = new Vector<ClientHandler>();
 	
 	private AccountStore accounts = new AccountStore(ACCOUNT_FILE);
+	private StatusManager statusManager = new StatusManager(this);
 	
 	/* 로그인한 접속자 수 (단순연결 제외) */
 	private int countUsers() {
@@ -65,6 +66,10 @@ public class ServerMain {
 		return accounts;
 	}
 	
+	public StatusManager getStatusManager() {
+		return statusManager;
+	}
+	
 	/*
 	 * 같은 아이디가 접속 중인지 검사, 아니면 해당 핸들러에 아이디를 붙임
 	 * 검사와 설정을 synchronized로 한 번에 처리한다.
@@ -78,6 +83,7 @@ public class ServerMain {
 		handler.setUser(account.id, account.name, account.dept);
 		handler.send(new Message(Protocol.LOGIN_OK,account.id, account.name, account.dept));
 		handler.send(makeUserList(account.dept));
+		broadcast(new Message(Protocol.USER_JOIN, account.id, account.name, account.dept, handler.getStatus()), handler);
 		logger.info("현재 접속자 수: " + countUsers());
 		return true;
 	}
@@ -85,6 +91,7 @@ public class ServerMain {
 	/* 연결이 끝난 핸들러를 목록에서 제거 */
 	public void remove(ClientHandler handler) {
 		users.remove(handler);
+		broadcast(new Message(Protocol.USER_LEAVE, handler.getUserID()), null);
 		logger.info("현재 접속자 수: " + countUsers());
 	}
 	
@@ -109,6 +116,7 @@ public class ServerMain {
 				fields.add(a.name);
 				fields.add(a.dept);
 				fields.add(ClientHandler.STATUS_OFFLINE);
+				count++;
 			}
 		}
 		
@@ -127,7 +135,7 @@ public class ServerMain {
 	
 	
 	/* 나 제외 */
-	private void broadcast(Message msg, ClientHandler except) {
+	public void broadcast(Message msg, ClientHandler except) {
 		for (ClientHandler c : users) {
 			if (c != except && c.getUserID() != null) {
 				c.send(msg);

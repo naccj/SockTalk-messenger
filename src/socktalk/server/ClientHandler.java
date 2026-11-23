@@ -21,6 +21,9 @@ public class ClientHandler extends Thread {
 	
 	public static final String STATUS_AVAILABLE = "AVAILABLE";
 	public static final String STATUS_OFFLINE = "OFFLINE";	
+	public static final String STATUS_AWAY = "AWAY";	
+	public static final String STATUS_BUSY = "BUSY";	
+	public static final String STATUS_DND = "DND";	
 	
 	private Socket socket;
 	private ServerMain server;
@@ -55,6 +58,10 @@ public class ClientHandler extends Thread {
 	
 	public String getStatus() {
 		return status;
+	}
+	
+	public void setStatus(String status) {
+		this.status = status;
 	}
 	
 	/* 로그인 성공시 ServerMain이 호출 - 처음상태 : 대화가능 */
@@ -115,8 +122,20 @@ public class ClientHandler extends Thread {
 		return;
 		}
 		
-		// TODO : 로그인 이후 메시지는 M2부터 추가
-		logger.info("수신 "+ userID + ": " + msg);
+		if (msg.getType().equals(Protocol.STATUS)) {
+			handleStatus(msg);
+		}
+		else {
+			// TODO : 방과 채팅 메세지는 다음 이슈에서 추가
+			logger.info("수신 "+ userID + ": " + msg);			
+		}
+	}
+	
+	/* STATUS|상태 -> 모두에게 STATUS_CHANGED|아이디|상태 */
+	private void handleStatus(Message msg) {
+		if (msg.size() != 1 || !server.getStatusManager().change(this, msg.get(0))) {
+			logger.warning("잘못된 활동상태 요청을 무시했습니다: " + userID);
+		}
 	}
 	
 	/* LOGIN|아이디|비밀번호 -> LOGIN_OK|아이디|이름|부서 또는 LOGIN_FAIL|사유	 */
