@@ -5,6 +5,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Vector;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -37,7 +39,7 @@ public class AccountStore {
 		load(path);
 	}
 	
-	/* 파일이 없거나 형식이 틀려도 서버가 죽지 않게 로그만 남김 */
+	/* 파일이 없거나 형식이 틀려도 로그만 남김 */
 	private void load(String path) {
 		File file = new File(path);
 		
@@ -76,7 +78,7 @@ public class AccountStore {
 		}
 	}
 
-	/* 아이디와 비밀번호가 맞으면 계정을, 아니면 null을 반환한다. */
+	/* 아이디와 비밀번호가 맞으면 계정을, 아니면 null을 반환. */
 	public Account login(String id, String password) {
 		for (Account a : accounts) {
 			if (a.id.equals(id) && a.password.equals(password)) {
@@ -84,5 +86,16 @@ public class AccountStore {
 			}
 		}
 		return null;
+	}
+
+	public List<Account> getMembers(String dept) {
+		List<Account> list = new ArrayList<Account>();
+		
+		for (Account a : accounts) {
+			if (a.dept.equals(dept)) {
+				list.add(a);
+			}
+		}
+		return list;
 	}
 }

@@ -12,7 +12,7 @@ public class Protocol {
     public static final String STATUS = "STATUS";			// STATUS|상태
 
     // 서버 -> 클라이언트
-    public static final String LOGIN_OK = "LOGIN_OK";    // LOGIN_OK|이름|부서
+    public static final String LOGIN_OK = "LOGIN_OK";    // LOGIN_OK|아이디|이름|부서
     public static final String LOGIN_FAIL = "LOGIN_FAIL";// LOGIN_FAIL|사유
     
     public static final String USER_LIST = "USER_LIST"; 	// USER_LIST|n|(아이디|이름|부서|상태)xn

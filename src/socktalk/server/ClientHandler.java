@@ -13,18 +13,25 @@ import socktalk.common.Message;
 import socktalk.common.Protocol;
 
 
-/**
+/*
  *  접속자 한명을 담당, 한 줄씩 받아 message로 해석 및 처리
  */
 public class ClientHandler extends Thread {
 	private static final Logger logger = Logger.getLogger(ClientHandler.class.getName());
-
+	
+	public static final String STATUS_AVAILABLE = "AVAILABLE";
+	public static final String STATUS_OFFLINE = "OFFLINE";	
+	
 	private Socket socket;
 	private ServerMain server;
 	private BufferedReader in;
 	private PrintWriter out;
 	
-	private volatile String userID = null; // 로그인 정보가 없을 때. 중복 검사(volatile)
+	// 로그인 정보가 없을 때. 중복 검사(volatile)
+	private volatile String userID = null; 
+	private volatile String userName = null; 
+	private volatile String dept = null; 
+	private volatile String status = STATUS_OFFLINE; 
 
 	public ClientHandler(Socket socket, ServerMain server) throws IOException {
 		this.socket = socket;
@@ -37,9 +44,25 @@ public class ClientHandler extends Thread {
 	public String getUserID() {
 		return userID;
 	}
+
+	public String getUserName() {
+		return userName;
+	}
 	
-	public void setUserID(String userID) {
+	public String getDept() {
+		return dept;
+	}
+	
+	public String getStatus() {
+		return status;
+	}
+	
+	/* 로그인 성공시 ServerMain이 호출 - 처음상태 : 대화가능 */
+	public void setUser(String userID, String userName, String dept) {
 		this.userID = userID;
+		this.userName = userName;
+		this.dept = dept;
+		this.status = STATUS_AVAILABLE;
 	}
 
 	/* 여러 스레드가 같은 소켓을 쓸 수 있음 synchronized */
@@ -110,12 +133,13 @@ public class ClientHandler extends Thread {
 			return;
 		}
 
-		if (!server.login(this, account.id)) {
+		if (!server.login(this, account)) {
 			send(new Message(Protocol.LOGIN_FAIL, "이미 접속 중인 계정입니다."));
 			return;
 		}
 
-		send(new Message(Protocol.LOGIN_OK, account.id, account.name, account.dept));
 		logger.info("로그인: " + userID);
 	}
+
+
 }

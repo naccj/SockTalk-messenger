@@ -3,11 +3,14 @@ package socktalk.server;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Vector;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import socktalk.common.Protocol;
+import socktalk.common.Message;
 
 /**
  * 서버 메인 : 접속을 받아 접속자 마다 ClientHandler 스레드를 만듦
@@ -22,6 +25,18 @@ public class ServerMain {
 	private Vector<ClientHandler> users = new Vector<ClientHandler>();
 	
 	private AccountStore accounts = new AccountStore(ACCOUNT_FILE);
+	
+	/* 로그인한 접속자 수 (단순연결 제외) */
+	private int countUsers() {
+		int count = 0;
+		
+		for (ClientHandler c : users) {
+			if (c.getUserID() != null) {
+				count++;
+			}
+		}
+		return count;
+	}
 	
 	public void start() {
 		try (ServerSocket serverSocket = new ServerSocket(Protocol.PORT)) {
@@ -54,22 +69,72 @@ public class ServerMain {
 	 * 같은 아이디가 접속 중인지 검사, 아니면 해당 핸들러에 아이디를 붙임
 	 * 검사와 설정을 synchronized로 한 번에 처리한다.
 	 * */
-	public synchronized boolean login(ClientHandler handler, String id) {
+	public synchronized boolean login(ClientHandler handler, AccountStore.Account account) {
 		for (ClientHandler c : users) {
-			if (c != handler && id.equals(c.getUserID())) {
+			if (c != handler && account.id.equals(c.getUserID())) {
 				return false;
 			}
 		}
-		handler.setUserID(id);
+		handler.setUser(account.id, account.name, account.dept);
+		handler.send(new Message(Protocol.LOGIN_OK,account.id, account.name, account.dept));
+		handler.send(makeUserList(account.dept));
+		logger.info("현재 접속자 수: " + countUsers());
 		return true;
 	}
 	
 	/* 연결이 끝난 핸들러를 목록에서 제거 */
 	public void remove(ClientHandler handler) {
 		users.remove(handler);
-		logger.info("현재 접속자 수: " + users.size());
+		logger.info("현재 접속자 수: " + countUsers());
 	}
 	
+	private Message makeUserList(String dept) {
+		List<String> fields = new ArrayList<String>();
+		int count = 0;
+		
+		for (ClientHandler c : users) {
+			if (c.getUserID() == null) {
+				continue;
+			}
+			fields.add(c.getUserID());
+			fields.add(c.getUserName());
+			fields.add(c.getDept());
+			fields.add(c.getStatus());
+			count++;
+		}
+		
+		for (AccountStore.Account a : accounts.getMembers(dept)) {
+			if (!isLoggedIn(a.id)) {
+				fields.add(a.id);
+				fields.add(a.name);
+				fields.add(a.dept);
+				fields.add(ClientHandler.STATUS_OFFLINE);
+			}
+		}
+		
+		fields.add(0, String.valueOf(count));
+		return new Message(Protocol.USER_LIST, fields.toArray(new String[0]));
+	}
+	
+	private boolean isLoggedIn(String id) {
+		for (ClientHandler c : users) {
+			if (id.equals(c.getUserID())) {
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	
+	/* 나 제외 */
+	private void broadcast(Message msg, ClientHandler except) {
+		for (ClientHandler c : users) {
+			if (c != except && c.getUserID() != null) {
+				c.send(msg);
+			}
+		}
+	}
+
 	public static void main(String[] args) {
 		new ServerMain().start();
 	}
