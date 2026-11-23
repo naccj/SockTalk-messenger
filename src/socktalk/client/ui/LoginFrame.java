@@ -2,6 +2,7 @@ package socktalk.client.ui;
 
 import java.awt.Font;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 
 import javax.swing.JButton;
 import javax.swing.JFrame;
@@ -94,10 +95,16 @@ public class LoginFrame extends JFrame {
 					String id = msg.get(0);
 					String name = msg.get(1);
 					String dept = msg.get(2);
-					SwingUtilities.invokeLater(() -> {
-						new MainFrame(cm, id, name, dept).setVisible(true);
-						dispose();
-					});
+					
+					try {
+						SwingUtilities.invokeAndWait(() -> {
+							new MainFrame(cm, id, name, dept).setVisible(true);
+							dispose();
+						});
+					} catch (InvocationTargetException | InterruptedException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
 				}else if(msg.getType().equals(Protocol.LOGIN_FAIL)) {
 					String reason = msg.size() > 0 ? msg.get(0) : "로그인에 실패했습니다.";
 					SwingUtilities.invokeLater(() -> {
