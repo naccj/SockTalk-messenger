@@ -18,12 +18,12 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
 
 import javax.swing.BorderFactory;
 import javax.swing.DefaultListCellRenderer;
 import javax.swing.DefaultListModel;
 import javax.swing.JButton;
-import javax.swing.JComboBox;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JList;
@@ -46,19 +46,22 @@ public class MainFrame extends JFrame{
 	private String myName;
 	private String myDepartment;
 	
+	// <유저 아이디, 유저 정보>
 	private Map<String, UserItem> userMap = new LinkedHashMap<>();
 	
 	private StatusMenu statusMenu;
 	private CardLayout cardLayout;
-	private JPanel contentCardPanel;
-	private JPanel myProfilePanel;
-	private JLabel headerTitleLabel;
+	private JPanel contentPanel;
+	private JPanel profilePanel;
+	private JLabel titleLabel;
 	
-	private JButton tabUserBtn;
-	private JButton tabChatBtn;
+	private JButton userTabBtn;
+	private JButton chatTabBtn;
 	
 	private DefaultListModel<UserItem> userListModel;
 	private DefaultListModel<RoomItem> chatRoomListModel;
+	
+	private static final Logger LOGGER = Logger.getLogger(MainFrame.class.getName());
 	
 	public MainFrame(ConnectionManager cm, String userId, String userName, String department) {
 		this.cm = cm;
@@ -66,11 +69,13 @@ public class MainFrame extends JFrame{
 		this.myName = userName;
 		this.myDepartment = department;
 		
+		// 프레임 -> UI 배치 -> 서버 메시지 수신 연결
 		initFrame();
 		initComponents();
 		setupMessageListener();
 	}
 	
+	// 프레임
 	private void initFrame() {
 		setTitle("SockTalk");
 		setSize(400, 680);
@@ -80,6 +85,7 @@ public class MainFrame extends JFrame{
 		setLayout(new BorderLayout());
 	}
 	
+	// UI 배치
 	private void initComponents() {
 		JPanel sideBar = new JPanel(new BorderLayout());
 		sideBar.setPreferredSize(new Dimension(64, 0));
@@ -87,18 +93,28 @@ public class MainFrame extends JFrame{
 		sideBar.setBorder(BorderFactory.createMatteBorder(0, 0, 0, 1, Theme.SUB));
 		
 		JPanel topMenuPanel = new JPanel(new GridLayout(2, 1, 0, 12));
-		topMenuPanel.setOpaque(false);
-		topMenuPanel.setBorder(BorderFactory.createEmptyBorder(20, 8, 0, 8));
+		topMenuPanel.setOpaque(false); // 패널 배경 투명하게
+		topMenuPanel.setBorder(BorderFactory.createEmptyBorder(20, 8, 0, 8)); // 안쪽 여백
 		
-		tabUserBtn = createSideTabButton("USER", true);
-		tabChatBtn = createSideTabButton("CHAT", false);
+		userTabBtn = createSideBarButton("USER", true);
+		chatTabBtn = createSideBarButton("CHAT", false);
 		
-		tabUserBtn.addActionListener(e -> switchTab("USER", "직원"));
-		tabChatBtn.addActionListener(e -> switchTab("CHAT", "채팅"));
+		userTabBtn.addActionListener(e -> switchTab("USER", "직원"));
+		chatTabBtn.addActionListener(e -> switchTab("CHAT", "채팅"));
 		
-		topMenuPanel.add(tabUserBtn);
-		topMenuPanel.add(tabChatBtn);
+		topMenuPanel.add(userTabBtn);
+		topMenuPanel.add(chatTabBtn);
 		sideBar.add(topMenuPanel, BorderLayout.NORTH);
+		
+		JPanel bottomMenuPanel = new JPanel(new GridLayout(1, 1));
+		bottomMenuPanel.setOpaque(false);
+		bottomMenuPanel.setBorder(BorderFactory.createEmptyBorder(0, 4, 16, 4));
+		
+		JButton logoutBtn = createLogoutButton();
+		logoutBtn.addActionListener(e -> handleLogout());
+		
+		bottomMenuPanel.add(logoutBtn);
+		sideBar.add(bottomMenuPanel, BorderLayout.SOUTH);
 		
 		add(sideBar, BorderLayout.WEST);
 		
@@ -108,15 +124,15 @@ public class MainFrame extends JFrame{
 		JPanel topSection = new JPanel(new BorderLayout());
 		topSection.setBackground(Theme.BG);
 		
-		headerTitleLabel = new JLabel("직원");
-		headerTitleLabel.setFont(new Font(Theme.FONT, Font.BOLD, 18));
-		headerTitleLabel.setForeground(Theme.TEXT);
-		headerTitleLabel.setBorder(BorderFactory.createEmptyBorder(18, 18, 12, 18));
-		topSection.add(headerTitleLabel, BorderLayout.NORTH);
+		titleLabel = new JLabel("직원");
+		titleLabel.setFont(new Font(Theme.FONT, Font.BOLD, 18));
+		titleLabel.setForeground(Theme.TEXT);
+		titleLabel.setBorder(BorderFactory.createEmptyBorder(18, 18, 12, 18));
+		topSection.add(titleLabel, BorderLayout.NORTH);
 		
-		myProfilePanel = new JPanel(new BorderLayout(12, 0));
-		myProfilePanel.setBackground(Theme.SUB);
-		myProfilePanel.setBorder(BorderFactory.createCompoundBorder(
+		profilePanel = new JPanel(new BorderLayout(12, 0));
+		profilePanel.setBackground(Theme.SUB);
+		profilePanel.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createMatteBorder(1, 0, 1, 0, Theme.SUB),
                 BorderFactory.createEmptyBorder(12, 18, 12, 18)
         ));
@@ -138,16 +154,16 @@ public class MainFrame extends JFrame{
 		
 		statusMenu = new StatusMenu(cm);
 		
-		myProfilePanel.add(myAvatar, BorderLayout.WEST);
-		myProfilePanel.add(myInfoBox, BorderLayout.CENTER);
-		myProfilePanel.add(statusMenu, BorderLayout.EAST);
+		profilePanel.add(myAvatar, BorderLayout.WEST);
+		profilePanel.add(myInfoBox, BorderLayout.CENTER);
+		profilePanel.add(statusMenu, BorderLayout.EAST);
 		
-		topSection.add(myProfilePanel, BorderLayout.CENTER);
+		topSection.add(profilePanel, BorderLayout.CENTER);
 		mainContainer.add(topSection, BorderLayout.NORTH);
 		
 		cardLayout = new CardLayout();
-		contentCardPanel = new JPanel(cardLayout);
-		contentCardPanel.setBackground(Theme.BG);
+		contentPanel = new JPanel(cardLayout);
+		contentPanel.setBackground(Theme.BG);
 		
 		userListModel = new DefaultListModel<>();
 		JList<UserItem> userList = new JList<>(userListModel);
@@ -159,7 +175,7 @@ public class MainFrame extends JFrame{
 		JScrollPane userScroll = new JScrollPane(userList);
 		userScroll.setBorder(null);
 		userScroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-		contentCardPanel.add(userScroll, "USER");
+		contentPanel.add(userScroll, "USER");
 		
 		chatRoomListModel = new DefaultListModel<>();
 		JList<RoomItem> chatRoomList = new JList<>(chatRoomListModel) {
@@ -176,29 +192,34 @@ public class MainFrame extends JFrame{
 		JScrollPane chatScroll = new JScrollPane(chatRoomList);
 		chatScroll.setBorder(null);
 		chatScroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-		contentCardPanel.add(chatScroll, "CHAT");
+		contentPanel.add(chatScroll, "CHAT");
 		
-		mainContainer.add(contentCardPanel, BorderLayout.CENTER);
+		mainContainer.add(contentPanel, BorderLayout.CENTER);
 		add(mainContainer, BorderLayout.CENTER);
 	}
 	
+	// 빈 공간 클릭 시 선택 해제
+	// 리스트 타입 상관 없이 다 받을 수 있도록 와일드카드(?) 사용
 	private void preventEmptySelection(JList<?> list) {
 		list.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mousePressed(MouseEvent e) {
 				int index = list.locationToIndex(e.getPoint());
+				// 그 항목이 실제로 차지하는 사각형 영역 안에 마우스 클릭 좌표가 들어있는지 검사
 				if (index == -1 || !list.getCellBounds(index, index).contains(e.getPoint())) {
-					list.clearSelection();
+					list.clearSelection(); // 항목이 없거나 실제로 칸 바깥을 눌렀다면 선택 상태 해제
 				}
 			}
 		});
 	}
 	
-	private JButton createSideTabButton(String type, boolean active) {
+	// 사이드바 아이콘 버튼 생성
+	private JButton createSideBarButton(String type, boolean active) {
 		JButton btn = new JButton() {
 			@Override
 			protected void paintComponent(Graphics g) {
 				super.paintComponent(g);
+				// 원본 g 설정을 망가뜨리지 않기 위해 복사하여 그리고 끝날 때 정리
 				Graphics2D g2 = (Graphics2D) g.create();
 				g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 				g2.setColor(getForeground());
@@ -206,10 +227,10 @@ public class MainFrame extends JFrame{
 				int cx = getWidth() / 2;
 				int cy = getHeight() / 2;
 				
-				if("USER".equals(type)) {
+				if("USER".equals(type)) { // "USER"일 때
 					g2.fillOval(cx - 5, cy - 10, 10, 10);
 					g2.fillArc(cx - 10, cy + 1, 20, 16, 0, 180);
-				}else {
+				}else { // "CHAT"일 때
 					g2.fillRoundRect(cx - 10, cy - 9, 20, 15, 7, 7);
 					int[] xPoints = {cx - 5, cx - 1, cx - 7};
 					int[] yPoints = {cy + 5, cy + 5, cy + 10};
@@ -228,35 +249,66 @@ public class MainFrame extends JFrame{
 		return btn;
 	}
 	
+	private JButton createLogoutButton() {
+		JButton btn = new JButton("로그아웃");
+		btn.setFont(new Font(Theme.FONT, Font.BOLD, 11));
+		btn.setForeground(Theme.TEXT);
+		btn.setBackground(Theme.SUB);
+		btn.setFocusPainted(false); // 버튼 눌렀을 때 글자 주변에 생기는 점선 테두리 제거
+		btn.setBorder(null); // 글자 안 잘리게 하는 설정
+		btn.setPreferredSize(new Dimension(56, 30));
+		btn.setCursor(new Cursor(Cursor.HAND_CURSOR)); // 마우스 올리면 손가락 모양 커서로 변경
+		return btn;
+	}
+	
+	private void handleLogout() {
+		int result = JOptionPane.showConfirmDialog(
+					this,
+					"로그아웃 하시겠습니까?",
+					"로그아웃",
+					JOptionPane.YES_NO_OPTION
+		);
+		if (result != JOptionPane.YES_OPTION) {
+			return;
+		}
+		if (cm != null) { // 서버 연결 객체가 있을 때만 로그아웃 가능
+			// 리스너를 먼저 해제하지 않고 바로 연결을 끊으면 onDisconnected 반응
+			cm.setMessageListener(null);
+			cm.send(new Message(Protocol.LOGOUT));
+			cm.disconnect();
+		}
+		
+		new LoginFrame(cm).setVisible(true);
+		dispose();
+	}
+	
+	// 선택되었는지에 따라 색 변경
 	private void styleTabButton(JButton btn, boolean active) {
 		if(active) {
 			btn.setBackground(Theme.PRIMARY);
-			btn.setForeground(Color.WHITE);
+			btn.setForeground(Theme.TEXT_ON_COLOR);
 		}else {
 			btn.setBackground(Theme.BG);
 			btn.setForeground(Theme.TEXT);
 		}
 	}
 	
+	// 화면 전환
 	private void switchTab(String cardName, String title) {
-		cardLayout.show(contentCardPanel, cardName);
-		headerTitleLabel.setText(title);
-		myProfilePanel.setVisible("USER".equals(cardName));
-		styleTabButton(tabUserBtn, "USER".equals(cardName));
-		styleTabButton(tabChatBtn, "CHAT".equals(cardName));
+		cardLayout.show(contentPanel, cardName);
+		titleLabel.setText(title);
+		profilePanel.setVisible("USER".equals(cardName));
+		styleTabButton(userTabBtn, "USER".equals(cardName));
+		styleTabButton(chatTabBtn, "CHAT".equals(cardName));
 	}
 	
-	private void loadDommyRooms() {
-		chatRoomListModel.addElement(new RoomItem("DEPT", myDepartment + "단체방", "공지", "13:42"));
-	}
-	
+	// 서버 메시지 수신 등록
 	private void setupMessageListener() {
 		if (cm == null) {
 			return;
 		}
 		
 		cm.setMessageListener(new MessageListener() {
-
 			@Override
 			public void onMessage(Message msg) {
 				String type = msg.getType();
@@ -265,8 +317,8 @@ public class MainFrame extends JFrame{
 						case Protocol.USER_LIST -> handleUserList(msg);
 						case Protocol.USER_JOIN -> handleUserJoin(msg);
 						case Protocol.USER_LEAVE -> handleUserLeave(msg);
-						case Protocol.PRESENCE -> handlePresence(msg);
-						default -> System.out.println("[MainFrame] 미처리 메시지: " + type);
+						case Protocol.STATUS_CHANGED -> handleStatusChanged(msg);
+						default -> LOGGER.info("미처리 메시지: " + type);
 					}
 				});
 			}
@@ -274,22 +326,28 @@ public class MainFrame extends JFrame{
 			@Override
 			public void onDisconnected() {
 				SwingUtilities.invokeLater(() -> {
-					JOptionPane.showMessageDialog(MainFrame.this, "서버와의 연결이 끊어졌습니다.", "연결 끊김", JOptionPane.WARNING_MESSAGE);
-					
+					JOptionPane.showMessageDialog(
+							MainFrame.this, 
+							"서버와의 연결이 끊어졌습니다.", 
+							"연결 끊김", 
+							JOptionPane.WARNING_MESSAGE
+					);
+					dispose();
 				});
 			}
 			
 		});
 	}
 	
+	// 전체 접속자 목록 수신
 	// USER_LIST|n|(아이디|이름|부서|상태)xn
 	private void handleUserList(Message msg) {
 		if (msg.size() < 1) {
 			return;
 		}
 		try {
-			int n = Integer.parseInt(msg.get(0));
-			userMap.clear();
+			int n = Integer.parseInt(msg.get(0)); // 총 직원 수
+			userMap.clear(); // 전체 목록을 새로 받았으니 기존 맵에 있는 데이터 정리
 			for (int i = 0; i < n; i++) {
 				int base = 1 + i * 4;
 				if (base + 3 >= msg.size()) {
@@ -299,16 +357,18 @@ public class MainFrame extends JFrame{
 				String name = msg.get(base + 1);
 				String dept = msg.get(base + 2);
 				String status = msg.get(base + 3);
+				// 내 정보는 따로 표시하고 있으니 다른 직원들만 맵에 저장
 				if(!id.equals(myId)) {
 					userMap.put(id, new UserItem(id, name, dept, status));
 				}
 			}
-			refreshUserList();
+			refreshUserList(); // 화면 리스트 갱신
 		}catch (NumberFormatException e) {
-			System.err.println("USER_LIST 파싱 오류: " + e.getMessage());
+			LOGGER.warning("USER_LIST 파싱 오류: " + e.getMessage());
 		}
 	}
 	
+	// 새 직원 접속 처리
 	// USER_JOIN|아이디|이름|부서|상태
 	private void handleUserJoin(Message msg) {
 		if (msg.size() < 4) {
@@ -322,22 +382,28 @@ public class MainFrame extends JFrame{
 		refreshUserList();
 	}
 	
+	// 직원 퇴장 처리
 	private void handleUserLeave(Message msg) {
 		if (msg.size() < 1) {
-			System.err.println("[MainFrame] USER_LEAVE 필드 부족: " + msg.size());
+			LOGGER.warning("USER_LEAVE 필드 부족: " + msg.size());
 			return;
 		}
 		
 		String id = msg.get(0);
 		UserItem user = userMap.get(id);
 		if(user != null) {
-			user.status = "OFFLINE";
+			if(user.dept.equals(myDepartment)) {
+				user.status = "OFFLINE";
+			}else {
+				userMap.remove(id);
+			}
 			refreshUserList();
 		}
 	}
 	
-	// PRESENCE|아이디|상태
-	private void handlePresence(Message msg) {
+	// 직원 활동 상태 변경 처리
+	// STATUS_CHANGED|아이디|상태
+	private void handleStatusChanged(Message msg) {
 		if(msg.size() < 2) {
 			return;
 		}
@@ -350,13 +416,15 @@ public class MainFrame extends JFrame{
 		}
 	}
 	
+	// 화면 갱신
 	private void refreshUserList() {
 		userListModel.clear();
+		// 맵은 자체 정렬이 되지 않으므로 UserItem만 뽑아서 ArrayList에 담기
 		List<UserItem> sorted = new ArrayList<>(userMap.values());
 		sorted.sort(Comparator
-				.comparing((UserItem u) -> !u.dept.equals(myDepartment))
-				.thenComparing(u -> u.dept)
-				.thenComparing(u -> u.name));
+				.comparing((UserItem u) -> !u.dept.equals(myDepartment)) // 오름차순 시 false가 true 앞
+				.thenComparing(u -> u.dept) // 다른 부서들끼리 부서명 가나다순으로 정렬
+				.thenComparing(u -> u.name)); // 같은 부서 안에서는 직원 이름 가나다순으로 정렬
 		
 		String currentDept = null;
 		for(UserItem u : sorted) {
@@ -368,17 +436,20 @@ public class MainFrame extends JFrame{
 		}
 	}
 	
+	// 데이터 모음
 	private static class UserItem{
-		String name, dept, status;
+		String id, name, dept, status;
 		boolean isHeader;
 		
 		UserItem(String id, String name, String dept, String status){
+			this.id = id;
 			this.name = name;
 			this.dept = dept;
 			this.status = status;
 			this.isHeader = false;
 		}
 		
+		// 부서 구분
 		static UserItem header(String dept) {
 			UserItem item = new UserItem("", "", dept, "");
 			item.isHeader = true;
@@ -386,7 +457,9 @@ public class MainFrame extends JFrame{
 		}
 	}
 
+	// 데이터 모음
 	private static class RoomItem{
+		// 방 종류, 방 제목, 마지막 메시지, 시간
 		String type, title, lastMsg, time;
 		RoomItem(String type, String title, String lastMsg, String time){
 			this.type = type;
@@ -414,17 +487,20 @@ public class MainFrame extends JFrame{
 			g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 			g2.setColor(bgColor);
 			g2.fillRoundRect(0, 2, 34, 34, 14, 14);
-			g2.setColor(Color.WHITE);
+			g2.setColor(Theme.TEXT_ON_COLOR);
 			g2.setFont(new Font(Theme.FONT, Font.BOLD, 14));
+			// 현재 폰트로 글자를 그렸을 때 가로 폭이 몇 px인지 미리 측정
 			int strW = g2.getFontMetrics().stringWidth(initial);
 			g2.drawString(initial, (34 - strW) / 2, 24);
 			g2.dispose();
 		}
 	}
 	
+	// 직원 목록(한 줄) 그리기
 	private static class UserListRenderer extends DefaultListCellRenderer{
 		@Override
-		public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+		public Component getListCellRendererComponent(
+				JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
 			UserItem item = (UserItem) value;
 			
 			if(item.isHeader) {
@@ -438,6 +514,7 @@ public class MainFrame extends JFrame{
 				header.add(lbl, BorderLayout.WEST);
 				return header;
 			}
+			// 직원 한 줄을 담는 패널
 			JPanel row = new JPanel(new BorderLayout(12, 0));
 			row.setBorder(BorderFactory.createEmptyBorder(8, 18, 8, 18));
 			row.setBackground(isSelected ? Theme.SUB : Color.WHITE);
@@ -446,6 +523,7 @@ public class MainFrame extends JFrame{
 			
 			JPanel textBox = new JPanel(new GridLayout(2, 1));
 			textBox.setOpaque(false);
+			
 			JLabel nameLbl = new JLabel(item.name);
 			nameLbl.setFont(new Font(Theme.FONT, Font.BOLD, 13));
 			nameLbl.setForeground(Theme.TEXT);
@@ -460,11 +538,26 @@ public class MainFrame extends JFrame{
 			String statusText;
 			Color statusColor;
 			switch (item.status) {
-			case "AVAILABLE" -> { statusText = "대화가능"; statusColor = Theme.PRIMARY; }
-			case "AWAY" -> { statusText = "자리비움"; statusColor = Theme.ACCENT; }
-			case "BUSY" -> { statusText = "다른용무중"; statusColor = Theme.ACCENT; }
-			case "DND" -> { statusText = "방해금지"; statusColor = Theme.TEXT; }
-			default -> {statusText = "오프라인"; statusColor = Theme.TEXT; }
+				case "AVAILABLE" -> { 
+					statusText = "대화가능"; 
+					statusColor = Theme.PRIMARY; 
+				}
+				case "AWAY" -> { 
+					statusText = "자리비움"; 
+					statusColor = Theme.ACCENT; 
+				}
+				case "BUSY" -> { 
+					statusText = "다른용무중"; 
+					statusColor = Theme.ACCENT; 
+				}
+				case "DND" -> { 
+					statusText = "방해금지"; 
+					statusColor = Theme.TEXT; 
+				}
+				default -> {
+					statusText = "오프라인"; 
+					statusColor = Theme.TEXT; 
+				}
 			}
 			
 			JLabel statusLbl = new JLabel(statusText);
@@ -478,6 +571,7 @@ public class MainFrame extends JFrame{
 		}
 	}
 	
+	// 채팅 목록(한 줄) 그리기
 	private static class RoomListRenderer extends DefaultListCellRenderer{
 		@Override
 		public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
@@ -486,8 +580,9 @@ public class MainFrame extends JFrame{
 			row.setBorder(BorderFactory.createEmptyBorder(10, 18, 10, 18));
 			row.setBackground(isSelected ? Theme.SUB : Color.WHITE);
 			
-			Color badgeColor = "DEPT".equals(item.type) ? Theme.ACCENT : "GROUP".equals(item.type) ? Theme.PRIMARY
-					: new Color(135, 150, 165);
+			Color badgeColor = "DEPT".equals(item.type) ? Theme.ACCENT 
+					: "GROUP".equals(item.type) ? Theme.PRIMARY
+					: Theme.SUB;
 			AvatarPanel avatar = new AvatarPanel(item.title.substring(0, 1), badgeColor);
 			
 			JPanel centerBox = new JPanel(new GridLayout(2, 1, 0, 2));
