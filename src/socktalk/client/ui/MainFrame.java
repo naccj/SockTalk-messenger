@@ -48,7 +48,7 @@ public class MainFrame extends JFrame{
 	
 	private Map<String, UserItem> userMap = new LinkedHashMap<>();
 	
-	private JComboBox<String> statusComboBox;
+	private StatusMenu statusMenu;
 	private CardLayout cardLayout;
 	private JPanel contentCardPanel;
 	private JPanel myProfilePanel;
@@ -60,8 +60,9 @@ public class MainFrame extends JFrame{
 	private DefaultListModel<UserItem> userListModel;
 	private DefaultListModel<RoomItem> chatRoomListModel;
 	
-	public MainFrame(ConnectionManager cm, String userName, String department) {
+	public MainFrame(ConnectionManager cm, String userId, String userName, String department) {
 		this.cm = cm;
+		this.myId = userId;
 		this.myName = userName;
 		this.myDepartment = department;
 		
@@ -135,30 +136,11 @@ public class MainFrame extends JFrame{
 		myInfoBox.add(nameLabel);
 		myInfoBox.add(deptLabel);
 		
-		String[] statuses = {"대화가능", "자리비움", "다른용무중", "방해금지"};
-		statusComboBox = new JComboBox<>(statuses);
-		statusComboBox.setFont(new Font(Theme.FONT, Font.PLAIN, 11));
-		statusComboBox.setBackground(Theme.BG);
-		statusComboBox.setForeground(Theme.TEXT);
-		statusComboBox.setPreferredSize(new Dimension(105, 28));
-		
-		statusComboBox.addActionListener(e ->{
-			if (cm == null) {
-				return;
-			}
-			String selected = (String) statusComboBox.getSelectedItem();
-			String code = switch(selected) {
-				case "자리비움" -> "AWAY";
-				case "다른용무중" -> "BUSY";
-				case "방해금지" -> "DND";
-				default -> "AVAILABLE";
-			};
-			cm.send(new Message(Protocol.STATUS, code));
-		});
+		statusMenu = new StatusMenu(cm);
 		
 		myProfilePanel.add(myAvatar, BorderLayout.WEST);
 		myProfilePanel.add(myInfoBox, BorderLayout.CENTER);
-		myProfilePanel.add(statusComboBox, BorderLayout.EAST);
+		myProfilePanel.add(statusMenu, BorderLayout.EAST);
 		
 		topSection.add(myProfilePanel, BorderLayout.CENTER);
 		mainContainer.add(topSection, BorderLayout.NORTH);
@@ -313,7 +295,7 @@ public class MainFrame extends JFrame{
 				if (base + 3 >= msg.size()) {
 					break;
 				}
-				String id = msg.get(base + 1);
+				String id = msg.get(base);
 				String name = msg.get(base + 1);
 				String dept = msg.get(base + 2);
 				String status = msg.get(base + 3);
@@ -485,7 +467,7 @@ public class MainFrame extends JFrame{
 			default -> {statusText = "오프라인"; statusColor = Theme.TEXT; }
 			}
 			
-			JLabel statusLbl = new JLabel(item.status);
+			JLabel statusLbl = new JLabel(statusText);
 			statusLbl.setFont(new Font(Theme.FONT, Font.PLAIN, 11));
 			statusLbl.setForeground(statusColor);
 			
