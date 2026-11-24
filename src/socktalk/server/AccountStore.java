@@ -17,14 +17,14 @@ import java.util.logging.Logger;
  */
 public class AccountStore {
 	private static final Logger logger = Logger.getLogger(AccountStore.class.getName());
-	
+
 	/* 계정 1개 */
 	public static class Account {
 		public final String id;
 		public final String password;
 		public final String name;
 		public final String dept;
-		
+
 		public Account(String id, String password, String name, String dept) {
 			this.id = id;
 			this.password = password;
@@ -32,26 +32,26 @@ public class AccountStore {
 			this.dept = dept;
 		}
 	}
-	
+
 	private Vector<Account> accounts = new Vector<Account>();
-	
+
 	public AccountStore(String path) {
 		load(path);
 	}
-	
+
 	/* 파일이 없거나 형식이 틀려도 로그만 남김 */
 	private void load(String path) {
 		File file = new File(path);
-		
+
 		if (!file.exists()) {
 			logger.severe("계정 파일이 없습니다: " + file.getAbsolutePath());
-			return;	
+			return;
 		}
-		
+
 		try (BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(file), "UTF-8"))) {
 			String line;
 			int lineNo = 0;
-			
+
 			while ((line = br.readLine()) != null) {
 				lineNo++;
 				// 윈도우 메모장이 UTF-8로 저장하면 맨 앞에 붙는 BOM 제거
@@ -88,14 +88,7 @@ public class AccountStore {
 		return null;
 	}
 
-	public List<Account> getMembers(String dept) {
-		List<Account> list = new ArrayList<Account>();
-		
-		for (Account a : accounts) {
-			if (a.dept.equals(dept)) {
-				list.add(a);
-			}
-		}
-		return list;
+	public List<Account> getAll() {
+		return new ArrayList<Account>(accounts);
 	}
 }

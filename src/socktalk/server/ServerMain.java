@@ -110,7 +110,7 @@ public class ServerMain {
 			count++;
 		}
 		
-		for (AccountStore.Account a : accounts.getMembers(dept)) {
+		for (AccountStore.Account a : accounts.getAll()) {
 			if (!isLoggedIn(a.id)) {
 				fields.add(a.id);
 				fields.add(a.name);
