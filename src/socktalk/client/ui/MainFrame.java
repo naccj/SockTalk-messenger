@@ -10,9 +10,11 @@ import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.GridLayout;
+import java.awt.Image;
 import java.awt.RenderingHints;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -23,6 +25,7 @@ import java.util.logging.Logger;
 import javax.swing.BorderFactory;
 import javax.swing.DefaultListCellRenderer;
 import javax.swing.DefaultListModel;
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -213,36 +216,26 @@ public class MainFrame extends JFrame{
 		});
 	}
 	
+	private ImageIcon loadScaledIcon(String path, int width, int height) {
+		URL imgUrl = getClass().getResource(path);
+		if (imgUrl == null) {
+			LOGGER.warning("아이콘 리소스를 찾을 수 없음: " + path);
+			return null;
+		}
+		ImageIcon origin = new ImageIcon(imgUrl);
+		Image scaled = origin.getImage().getScaledInstance(width, height, Image.SCALE_SMOOTH);
+		return new ImageIcon(scaled);
+	}
+	
 	// 사이드바 아이콘 버튼 생성
 	private JButton createSideBarButton(String type, boolean active) {
-		JButton btn = new JButton() {
-			@Override
-			protected void paintComponent(Graphics g) {
-				super.paintComponent(g);
-				// 원본 g 설정을 망가뜨리지 않기 위해 복사하여 그리고 끝날 때 정리
-				Graphics2D g2 = (Graphics2D) g.create();
-				g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-				g2.setColor(getForeground());
+		String iconPath = "USER".equals(type) ? "/images/user.png" : "/images/chat.png";
+		JButton btn = new JButton(loadScaledIcon(iconPath, 24, 24));
 				
-				int cx = getWidth() / 2;
-				int cy = getHeight() / 2;
-				
-				if("USER".equals(type)) { // "USER"일 때
-					g2.fillOval(cx - 5, cy - 10, 10, 10);
-					g2.fillArc(cx - 10, cy + 1, 20, 16, 0, 180);
-				}else { // "CHAT"일 때
-					g2.fillRoundRect(cx - 10, cy - 9, 20, 15, 7, 7);
-					int[] xPoints = {cx - 5, cx - 1, cx - 7};
-					int[] yPoints = {cy + 5, cy + 5, cy + 10};
-					g2.fillPolygon(xPoints, yPoints, 3);
-				}
-				g2.dispose();
-			}
-		};
-		
 		btn.setToolTipText("USER".equals(type) ? "직원" : "채팅");
 		btn.setFocusPainted(false);
 		btn.setBorderPainted(false);
+		btn.setContentAreaFilled(true);
 		btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
 		btn.setPreferredSize(new Dimension(48, 46));
 		styleTabButton(btn, active);
@@ -250,12 +243,11 @@ public class MainFrame extends JFrame{
 	}
 	
 	private JButton createLogoutButton() {
-		JButton btn = new JButton("로그아웃");
-		btn.setFont(new Font(Theme.FONT, Font.BOLD, 11));
-		btn.setForeground(Theme.TEXT);
+		JButton btn = new JButton(loadScaledIcon("/images/logout.png", 22, 22));
+		btn.setToolTipText("로그아웃");
 		btn.setBackground(Theme.SUB);
-		btn.setFocusPainted(false); // 버튼 눌렀을 때 글자 주변에 생기는 점선 테두리 제거
-		btn.setBorder(null); // 글자 안 잘리게 하는 설정
+		btn.setFocusPainted(false); // 버튼 눌렀을 때 주변에 생기는 점선 테두리 제거
+		btn.setBorderPainted(false);
 		btn.setPreferredSize(new Dimension(56, 30));
 		btn.setCursor(new Cursor(Cursor.HAND_CURSOR)); // 마우스 올리면 손가락 모양 커서로 변경
 		return btn;
