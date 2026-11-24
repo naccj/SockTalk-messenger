@@ -46,7 +46,7 @@ public class ConnectionManager {
 		SocketAddress sa = new InetSocketAddress(serverAddress, serverPort);
 		socket.connect(sa, 3000);
 		
-		in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+		in = new BufferedReader(new InputStreamReader(socket.getInputStream(), "UTF-8"));
 		out = new PrintWriter(new OutputStreamWriter(socket.getOutputStream(), "UTF-8"), true);
 		connected = true;
 		
