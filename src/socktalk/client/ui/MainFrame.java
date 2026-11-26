@@ -14,6 +14,8 @@ import java.awt.Image;
 import java.awt.RenderingHints;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -51,6 +53,12 @@ public class MainFrame extends JFrame{
 	
 	// <유저 아이디, 유저 정보>
 	private Map<String, UserItem> userMap = new LinkedHashMap<>();
+	// <방 ID, 방 정보>
+	private Map<String, RoomItem> roomMap = new LinkedHashMap<>();
+	// <방 ID, 현재 열려 있는 채팅방>
+	private Map<String, ChatFrame> openChatFrames = new LinkedHashMap<>();
+	// <방 ID, 채팅방 열기 전 도착한 메시지를 포함한 누적 내역>
+	private Map<String, List<ChatRecord>> chatHistoryMap = new LinkedHashMap<>();
 	
 	private StatusMenu statusMenu;
 	private CardLayout cardLayout;
@@ -191,6 +199,18 @@ public class MainFrame extends JFrame{
 		chatRoomList.setCellRenderer(new RoomListRenderer());
 		chatRoomList.setFixedCellHeight(64);
 		preventEmptySelection(chatRoomList);
+		chatRoomList.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				if (e.getClickCount() == 2) {
+					int index = chatRoomList.locationToIndex(e.getPoint());
+					if (index != -1 && chatRoomList.getCellBounds(index, index).contains(e.getPoint())) {
+						RoomItem selected = chatRoomListModel.getElementAt(index);
+						openChatRoom(selected);
+					}
+				}
+			}
+		});
 		
 		JScrollPane chatScroll = new JScrollPane(chatRoomList);
 		chatScroll.setBorder(null);
@@ -215,6 +235,7 @@ public class MainFrame extends JFrame{
 			}
 		});
 	}
+	
 	
 	private ImageIcon loadScaledIcon(String path, int width, int height) {
 		URL imgUrl = getClass().getResource(path);
@@ -271,6 +292,7 @@ public class MainFrame extends JFrame{
 		}
 		
 		new LoginFrame(cm).setVisible(true);
+		closeAllChatFrames();
 		dispose();
 	}
 	
@@ -310,6 +332,8 @@ public class MainFrame extends JFrame{
 						case Protocol.USER_JOIN -> handleUserJoin(msg);
 						case Protocol.USER_LEAVE -> handleUserLeave(msg);
 						case Protocol.STATUS_CHANGED -> handleStatusChanged(msg);
+						case Protocol.ROOM_LIST -> handleRoomList(msg);
+						case Protocol.CHAT -> handleChat(msg);
 						default -> LOGGER.info("미처리 메시지: " + type);
 					}
 				});
@@ -324,6 +348,7 @@ public class MainFrame extends JFrame{
 							"연결 끊김", 
 							JOptionPane.WARNING_MESSAGE
 					);
+					closeAllChatFrames();
 					dispose();
 				});
 			}
@@ -384,11 +409,7 @@ public class MainFrame extends JFrame{
 		String id = msg.get(0);
 		UserItem user = userMap.get(id);
 		if(user != null) {
-			if(user.dept.equals(myDepartment)) {
-				user.status = "OFFLINE";
-			}else {
-				userMap.remove(id);
-			}
+			user.status = "OFFLINE";
 			refreshUserList();
 		}
 	}
@@ -428,6 +449,110 @@ public class MainFrame extends JFrame{
 		}
 	}
 	
+	// 채팅방 제어
+	private void openChatRoom(RoomItem room) {
+		ChatFrame existing = openChatFrames.get(room.id);
+		if(existing != null) {
+			existing.toFront();
+			existing.requestFocus();
+			return;
+		}
+		
+		ChatFrame chatFrame = new ChatFrame(cm, room.id, room.title, room.type, myId);
+		chatFrame.addWindowListener(new WindowAdapter() {
+			@Override
+			public void windowClosed(WindowEvent e) {
+				openChatFrames.remove(room.id);
+			}
+		});
+		
+		List<ChatRecord> history = chatHistoryMap.get(room.id);
+		if (history != null) {
+			for(ChatRecord r : history) {
+				chatFrame.appendMessage(r.senderId, r.senderName, r.time, r.content);
+			}
+		}
+		
+		openChatFrames.put(room.id, chatFrame);
+		chatFrame.setVisible(true);
+	}
+	
+	private void closeAllChatFrames() {
+		for(ChatFrame frame : new ArrayList<>(openChatFrames.values())) {
+			frame.dispose();
+		}
+		openChatFrames.clear();
+	}
+	
+	// 참여 중인 방 목록 수신
+	// ROOM_LIST|n|(방ID|이름|종류)*n
+	private void handleRoomList(Message msg) {
+		if (msg.size() < 1) {
+			return;
+		}
+		
+		try {
+			int n = Integer.parseInt(msg.get(0));
+			roomMap.clear();
+			for (int i = 0; i < n; i++) {
+				int base = 1 + i * 3;
+				if  (base + 2 >= msg.size()) {
+					break;
+				}
+				String roomId = msg.get(base);
+				String roomName = msg.get(base + 1);
+				String roomType = msg.get(base + 2);
+				roomMap.put(roomId, new RoomItem(roomId, roomType, roomName, "", ""));
+			}
+			refreshRoomList();
+		}catch (NumberFormatException e) {
+			LOGGER.warning("ROOM_LIST 파싱 오류: " + e.getMessage());
+		}
+	}
+	
+	// 채팅 수신
+	// CHAT|방ID|송신자ID|시간|내용
+	private void handleChat(Message msg) {
+		if(msg.size() < 4) {
+			LOGGER.warning("CHAT 필드 부족: " + msg.size());
+			return;
+		}
+		
+		String roomId = msg.get(0);
+		String senderId = msg.get(1);
+		String time = msg.get(2);
+		String content = msg.get(3);
+		
+		String senderName;
+		if(senderId.equals(myId)) {
+			senderName = myName;
+		} else {
+			UserItem user = userMap.get(senderId);
+			senderName = (user != null) ? user.name : senderId;
+		}
+		
+		chatHistoryMap.computeIfAbsent(roomId, k -> new ArrayList<>()).add(new ChatRecord(senderId, senderName, time, content));
+		
+		RoomItem room = roomMap.get(roomId);
+		if (room != null) {
+			room.lastMsg = content;
+			room.time = time;
+			refreshRoomList();
+		}
+		
+		ChatFrame frame = openChatFrames.get(roomId);
+		if(frame != null) {
+			frame.appendMessage(senderId, senderName, time, content);
+		}
+	}
+	
+	private void refreshRoomList() {
+		chatRoomListModel.clear();
+		for(RoomItem room : roomMap.values()) {
+			chatRoomListModel.addElement(room);
+		}
+	}
+	
 	// 데이터 모음
 	private static class UserItem{
 		String id, name, dept, status;
@@ -452,12 +577,25 @@ public class MainFrame extends JFrame{
 	// 데이터 모음
 	private static class RoomItem{
 		// 방 종류, 방 제목, 마지막 메시지, 시간
-		String type, title, lastMsg, time;
-		RoomItem(String type, String title, String lastMsg, String time){
+		String id, type, title, lastMsg, time;
+		RoomItem(String id, String type, String title, String lastMsg, String time){
+			this.id = id;
 			this.type = type;
 			this.title = title;
 			this.lastMsg = lastMsg;
 			this.time = time;
+		}
+	}
+	
+	private static class ChatRecord {
+		// 보낸 사람 ID, 보낸 사람 이름, 시간, 내용
+		String senderId, senderName, time, content;
+		
+		ChatRecord(String senderId, String senderName, String time, String content){
+			this.senderId = senderId;
+			this.senderName = senderName;
+			this.time = time;
+			this.content = content;
 		}
 	}
 	
@@ -575,7 +713,8 @@ public class MainFrame extends JFrame{
 			Color badgeColor = "DEPT".equals(item.type) ? Theme.ACCENT 
 					: "GROUP".equals(item.type) ? Theme.PRIMARY
 					: Theme.SUB;
-			AvatarPanel avatar = new AvatarPanel(item.title.substring(0, 1), badgeColor);
+			String initial = (item.title != null && !item.title.isEmpty()) ? item.title.substring(0, 1) : "?";
+			AvatarPanel avatar = new AvatarPanel(initial, badgeColor);
 			
 			JPanel centerBox = new JPanel(new GridLayout(2, 1, 0, 2));
 			centerBox.setOpaque(false);
