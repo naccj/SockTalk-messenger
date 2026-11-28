@@ -128,6 +128,9 @@ public class ClientHandler extends Thread {
 		else if (msg.getType().equals(Protocol.CHAT)) {
 			handleChat(msg);
 		}
+		else if (msg.getType().equals(Protocol.LOBBY_NOTICE_SET)) {
+			handleLobbyNoticeSet(msg);
+		}
 		
 		else {
 			// TODO : 방만들기와 나가기 메세지는 다음 이슈에서 추가
@@ -147,6 +150,15 @@ public class ClientHandler extends Thread {
 		if (msg.size() != 2 || !server.getRoomManager().chat(this, msg.get(0), msg.get(1))) {
 			logger.warning("잘못된 채팅 요청을 무시했습니다: " + userID);
 		}
+	}
+
+	/* LOBBY_NOTICE_SET|내용 -> 모두에게 LOBBY_NOTICE|게시자ID|내용 (빈 문자열은 삭제) */
+	private void handleLobbyNoticeSet(Message msg) {
+		if (msg.size() != 1) {
+			logger.warning("잘못된 로비 공지 요청을 무시했습니다: " + userID);
+			return;
+		}
+		server.getNoticeManager().setLobbyNotice(this, msg.get(0));
 	}
 	
 	/* LOGIN|아이디|비밀번호 -> LOGIN_OK|아이디|이름|부서 또는 LOGIN_FAIL|사유	 */
