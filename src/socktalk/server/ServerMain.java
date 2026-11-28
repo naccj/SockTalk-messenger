@@ -27,6 +27,7 @@ public class ServerMain {
 	private AccountStore accounts = new AccountStore(ACCOUNT_FILE);
 	private StatusManager statusManager = new StatusManager(this);
 	private RoomManager rooms = new RoomManager(this);
+	private NoticeManager notice = new NoticeManager(this);
 	
 	/* 로그인한 접속자 수 (단순연결 제외) */
 	private int countUsers() {
@@ -75,6 +76,10 @@ public class ServerMain {
 		return rooms;
 	}
 	
+	public NoticeManager getNoticeManager() {
+		return notice;
+	}
+	
 	/*
 	 * 같은 아이디가 접속 중인지 검사, 아니면 해당 핸들러에 아이디를 붙임
 	 * 검사와 설정을 synchronized로 한 번에 처리한다.
@@ -89,6 +94,7 @@ public class ServerMain {
 		handler.send(new Message(Protocol.LOGIN_OK,account.id, account.name, account.dept));
 		handler.send(makeUserList(account.dept));
 		rooms.joinDeptRoom(handler);
+		notice.sendLoobyNotice(handler);
 		broadcast(new Message(Protocol.USER_JOIN, account.id, account.name, account.dept, handler.getStatus()), handler);
 		logger.info("현재 접속자 수: " + countUsers());
 		return true;
