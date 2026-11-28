@@ -20,7 +20,7 @@ public class Protocol {
     public static final String USER_LEAVE = "USER_LEAVE";	// USER_LEAVE|아이디
     public static final String STATUS_CHANGED = "STATUS_CHANGED";		// STATUS_CHANGED|아이디|상태
     
-    public static final String CHAT = "CHAT";
-    public static final String ROOM_LIST = "ROOM_LIST";
+    public static final String CHAT = "CHAT"; // CHAT|방ID|송신자ID|시간|내용
+    public static final String ROOM_LIST = "ROOM_LIST"; // ROOM_LIST|n|(방ID|이름|종류)×n
     // ===== 추가시 =====
 }

@@ -30,7 +30,7 @@ public class ClientHandler extends Thread {
 	private BufferedReader in;
 	private PrintWriter out;
 	
-	// 로그인 정보가 없을 때. 중복 검사(volatile)
+	// 로그인 정보가 없을 때 null, 다른 접속자의 스레드가 읽으므로 volatile 사용
 	private volatile String userID = null; 
 	private volatile String userName = null; 
 	private volatile String dept = null; 
@@ -72,7 +72,7 @@ public class ClientHandler extends Thread {
 		this.status = STATUS_AVAILABLE;
 	}
 
-	/* 여러 스레드가 같은 소켓을 쓸 수 있음 synchronized */
+	/* 여러 스레드가 같은 소켓을 쓸 수 있으므로 synchronized 사용 */
 	public synchronized void send(Message msg) {
 		out.println(msg.encode());
 	}
@@ -125,8 +125,12 @@ public class ClientHandler extends Thread {
 		if (msg.getType().equals(Protocol.STATUS)) {
 			handleStatus(msg);
 		}
+		else if (msg.getType().equals(Protocol.CHAT)) {
+			handleChat(msg);
+		}
+		
 		else {
-			// TODO : 방과 채팅 메세지는 다음 이슈에서 추가
+			// TODO : 방만들기와 나가기 메세지는 다음 이슈에서 추가
 			logger.info("수신 "+ userID + ": " + msg);			
 		}
 	}
@@ -135,6 +139,13 @@ public class ClientHandler extends Thread {
 	private void handleStatus(Message msg) {
 		if (msg.size() != 1 || !server.getStatusManager().change(this, msg.get(0))) {
 			logger.warning("잘못된 활동상태 요청을 무시했습니다: " + userID);
+		}
+	}
+	
+	/* CHAT|방ID|내용 -> 같은 방 멤버 전체에게 CHAT|방ID|송신자ID|시간|내용 */
+	private void handleChat(Message msg) {
+		if (msg.size() != 2 || !server.getRoomManager().chat(this, msg.get(0), msg.get(1))) {
+			logger.warning("잘못된 채팅 요청을 무시했습니다: " + userID);
 		}
 	}
 	
