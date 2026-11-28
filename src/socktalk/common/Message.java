@@ -4,7 +4,7 @@ package socktalk.common;
  * 메시지 한 줄(TYPE|값1|값2|...)을 만들고 해석한다.
  * BufferedReader/PrintWriter로 한 줄씩 주고받으므로, 이스케이프는 이 클래스에서만 처리한다.
  *
- * 이스케이프 규칙 (protocol.md 1번)
+ * 이스케이프 규칙
  *   \  -> \\
  *   |  -> \p
  *   줄바꿈 -> \n

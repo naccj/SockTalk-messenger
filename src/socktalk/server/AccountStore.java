@@ -13,12 +13,11 @@ import java.util.logging.Logger;
 
 /* 
  * 계정파일을 읽어 로그인 검증
- * 파일 형식(한 줄에 계정 하나, UTF-8): 아이디|비밀번호|이름|부서
+ * 파일 형식: 아이디|비밀번호|이름|부서
  */
 public class AccountStore {
 	private static final Logger logger = Logger.getLogger(AccountStore.class.getName());
 
-	/* 계정 1개 */
 	public static class Account {
 		public final String id;
 		public final String password;

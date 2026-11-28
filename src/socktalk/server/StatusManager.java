@@ -8,7 +8,7 @@ import socktalk.common.Protocol;
 
 /*
  * 접속자의 활동상태 변경 처리
- * 접속이 끊긴 OFFLINE은 ServerMain.remove()로 처리함
+ * OFFLINE은 ServerMain.remove()로 처리함
  * */
 public class StatusManager {
 	private static final Logger logger = Logger.getLogger(ClientHandler.class.getName());
