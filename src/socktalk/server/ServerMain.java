@@ -21,11 +21,12 @@ public class ServerMain {
 	
 	private static final String ACCOUNT_FILE = "data/Accounts.txt";
 	
-	// 접속 중인 사용자, Vector로 구현
+	// 접속 중인 사용자, Vector
 	private Vector<ClientHandler> users = new Vector<ClientHandler>();
 	
 	private AccountStore accounts = new AccountStore(ACCOUNT_FILE);
 	private StatusManager statusManager = new StatusManager(this);
+	private RoomManager rooms = new RoomManager(this);
 	
 	/* 로그인한 접속자 수 (단순연결 제외) */
 	private int countUsers() {
@@ -70,6 +71,10 @@ public class ServerMain {
 		return statusManager;
 	}
 	
+	public RoomManager getRoomManager() {
+		return rooms;
+	}
+	
 	/*
 	 * 같은 아이디가 접속 중인지 검사, 아니면 해당 핸들러에 아이디를 붙임
 	 * 검사와 설정을 synchronized로 한 번에 처리한다.
@@ -83,15 +88,18 @@ public class ServerMain {
 		handler.setUser(account.id, account.name, account.dept);
 		handler.send(new Message(Protocol.LOGIN_OK,account.id, account.name, account.dept));
 		handler.send(makeUserList(account.dept));
+		rooms.joinDeptRoom(handler);
 		broadcast(new Message(Protocol.USER_JOIN, account.id, account.name, account.dept, handler.getStatus()), handler);
 		logger.info("현재 접속자 수: " + countUsers());
 		return true;
 	}
 	
 	/* 연결이 끝난 핸들러를 목록에서 제거 */
-	public void remove(ClientHandler handler) {
+	public synchronized void remove(ClientHandler handler) {
 		users.remove(handler);
-		broadcast(new Message(Protocol.USER_LEAVE, handler.getUserID()), null);
+		if (handler.getUserID() != null) {
+			broadcast(new Message(Protocol.USER_LEAVE, handler.getUserID()), null);			
+		}
 		logger.info("현재 접속자 수: " + countUsers());
 	}
 	
@@ -124,6 +132,16 @@ public class ServerMain {
 		return new Message(Protocol.USER_LIST, fields.toArray(new String[0]));
 	}
 	
+	/* 로그인한 접속자 중 아이디가 같은 핸들러. 접속 중이 아니면 null. RoomManager가 방 멤버에게 보낼 때 쓴다. */
+	ClientHandler findUser(String id) {
+		for (ClientHandler c : users) {
+			if (id.equals(c.getUserID())) {
+				return c;
+			}
+		}
+		return null;
+	}
+	
 	private boolean isLoggedIn(String id) {
 		for (ClientHandler c : users) {
 			if (id.equals(c.getUserID())) {
@@ -134,7 +152,7 @@ public class ServerMain {
 	}
 	
 	
-	/* 나 제외 */
+	/* 로그인한 모두에게 전송, 없으면 null */
 	public void broadcast(Message msg, ClientHandler except) {
 		for (ClientHandler c : users) {
 			if (c != except && c.getUserID() != null) {
